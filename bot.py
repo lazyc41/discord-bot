@@ -1,14 +1,16 @@
+
 import os
 import discord
 from discord.ext import commands
 
-# ===== 請確認這三項設定 =====
+# ===== 基本設定 =====
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = 1538207896238817313
 SUPPORT_ROLE_ID = 1557220597249998948
-
-# 暫時不使用分類就維持 None
 CATEGORY_ID = None
+
+if not TOKEN:
+    raise RuntimeError("找不到 DISCORD_TOKEN，請檢查 FadeHost 設定")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -16,6 +18,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 SERVICES = ["娛樂陪", "技術陪", "代打", "客服"]
 GUILD = discord.Object(id=GUILD_ID)
 panel_synced = False
+
+# ===== 圖片對應 =====
+SERVICE_IMAGES = {
+    "娛樂陪": ["entertainment.jpg"],
+    "技術陪": ["technical.png", "technical2.jpg"],
+    "代打": ["carry.jpg"],
+    "客服": []
+}
 
 
 class OrderSelect(discord.ui.Select):
@@ -27,6 +37,7 @@ class OrderSelect(discord.ui.Select):
             )
             for name in SERVICES
         ]
+
         super().__init__(
             placeholder="請選擇你需要的服務",
             options=options,
@@ -34,15 +45,20 @@ class OrderSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        guild = interaction.guild
+
+        # 先回覆 Discord，避免互動逾時
         await interaction.response.defer(ephemeral=True)
+
+        guild = interaction.guild
+
         if guild is None:
             await interaction.followup.send(
-                "請在伺服器內使用這個選單。", ephemeral=True
+                "請在伺服器內使用這個選單。",
+                ephemeral=True
             )
             return
 
-        # 避免同一人重複建立未完成的服務頻道
+        # 避免同一人重複建立頻道
         for channel in guild.text_channels:
             if channel.topic == f"order:{interaction.user.id}":
                 await interaction.followup.send(
@@ -55,7 +71,7 @@ class OrderSelect(discord.ui.Select):
         bot_member = guild.get_member(bot.user.id)
 
         if support_role is None or bot_member is None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "找不到客服身分組或機器人身分，請檢查設定。",
                 ephemeral=True
             )
@@ -87,9 +103,13 @@ class OrderSelect(discord.ui.Select):
             if CATEGORY_ID else None
         )
 
+        channel = None
+
         try:
+            service = self.values[0]
+
             channel = await guild.create_text_channel(
-                name=f"{self.values[0]}-{interaction.user.name}",
+                name=f"{service}-{interaction.user.name}",
                 topic=f"order:{interaction.user.id}",
                 overwrites=overwrites,
                 category=(
@@ -99,26 +119,37 @@ class OrderSelect(discord.ui.Select):
                 )
             )
 
+            # 傳送歡迎文字
             await channel.send(
                 f"{interaction.user.mention} 您好！\n"
-                f"您選擇的服務是：**{self.values[0]}**\n"
+                f"您選擇的服務是：**{service}**\n"
                 "請在這裡說明您的需求，客服會盡快協助您。"
             )
 
-            await interaction.response.send_message(
+            # 傳送對應圖片
+            image_names = SERVICE_IMAGES.get(service, [])
+
+            for image_name in image_names:
+                await channel.send(
+                    file=discord.File(image_name)
+                )
+
+            await interaction.followup.send(
                 f"已建立私人服務頻道：{channel.mention}",
                 ephemeral=True
             )
 
         except discord.Forbidden:
-            await interaction.response.send_message(
-                "機器人權限不足，請確認它有管理頻道的權限，"
-                "且角色排序設定正確。",
+            await interaction.followup.send(
+                "機器人權限不足，請檢查管理頻道及傳送訊息權限。",
                 ephemeral=True
             )
-        except discord.HTTPException:
-            await interaction.response.send_message(
-                "建立頻道失敗，請稍後再試或檢查伺服器設定。",
+
+        except (discord.HTTPException, OSError) as error:
+            print(f"建立頻道或傳送圖片失敗：{error}")
+
+            await interaction.followup.send(
+                "建立頻道或傳送圖片失敗，請檢查圖片檔案及權限。",
                 ephemeral=True
             )
 
@@ -147,6 +178,7 @@ async def on_ready():
 
     if not panel_synced:
         bot.add_view(OrderView())
+
         try:
             await bot.tree.sync(guild=GUILD)
             panel_synced = True
@@ -158,4 +190,3 @@ async def on_ready():
 
 
 bot.run(TOKEN)
-
