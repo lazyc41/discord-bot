@@ -35,8 +35,9 @@ class OrderSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         guild = interaction.guild
+        await interaction.response.defer(ephemeral=True)
         if guild is None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "請在伺服器內使用這個選單。", ephemeral=True
             )
             return
