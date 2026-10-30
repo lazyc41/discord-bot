@@ -45,7 +45,7 @@ class OrderSelect(discord.ui.Select):
         # 避免同一人重複建立未完成的服務頻道
         for channel in guild.text_channels:
             if channel.topic == f"order:{interaction.user.id}":
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"你已有服務頻道：{channel.mention}",
                     ephemeral=True
                 )
