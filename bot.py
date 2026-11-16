@@ -15,7 +15,7 @@ if not TOKEN:
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-SERVICES = ["娛樂陪", "技術陪", "代打", "客服"]
+SERVICES = ["娛樂陪", "技術陪", "教學單","代打", "客服"]
 GUILD = discord.Object(id=GUILD_ID)
 panel_synced = False
 
@@ -23,6 +23,7 @@ panel_synced = False
 SERVICE_IMAGES = {
     "娛樂陪": ["XJ價目表.png"],
     "技術陪": ["XJ價目表.png", "XJ價目表.png"],
+    "教學單": ["XJ價目表.png"],
     "代打": ["carry.jpg"],
     "客服": []
 }
