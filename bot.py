@@ -21,8 +21,8 @@ panel_synced = False
 
 # ===== 圖片對應 =====
 SERVICE_IMAGES = {
-    "娛樂陪": ["entertainment.jpg"],
-    "技術陪": ["technical.png", "technical2.jpg"],
+    "娛樂陪": ["XJ價目表.png"],
+    "技術陪": ["XJ價目表.png", "XJ價目表.png"],
     "代打": ["carry.jpg"],
     "客服": []
 }
